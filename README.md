@@ -179,7 +179,7 @@
 
   - Because you can have multiple types of robot builders — those that build cookie robots or automotive robots, for example — I start by creating a RobotBuilder interface that all robot builders have to implement. This interface lists the methods that all robot builders must implement, from addStart to addStop, as well as the getRobot method:
 
-    ```
+    ```java
       public interface RobotBuilder {
         public void addStart();
         public void addGetParts();
@@ -848,3 +848,797 @@
       ```
 
 ### Composite Pattern
+
+- Composite pattern allows us to build structures of objects in the form of trees that contain both compositions of objects and individual objects as nodes.
+- Using a composite structure, we can apply the same operations over both composites and individual objects. In other words, in most cases we <b>ignore</b> the difference between compositions of objects and individual objects.
+- Example (Taken from Head-First Design Pattern pg. 366):
+
+  - To apply composite pattern to our menus, we need to create a component interface which acts as the common interface for both menus and menu items and allows us to treate them uniformly.
+    In other words, we can <b>call the same method</b> on menus or menu items.
+  - Implementation of <b>MenuComponent</b>:
+
+    ```java
+    public abstract class MenuComponent {
+      public void add(MenuComponent menuComponent) {
+        throw new UnsupportedOperationException();
+      }
+      public void remove(MenuComponent menuComponent) {
+        throw new UnsupportedOperationException();
+      }
+      public void getChild(int i) {
+        throw new UnsupportedOperationException();
+      }
+
+      public void getName() {
+        throw new UnsupportedOperationException();
+      }
+      public void getDescription() {
+        throw new UnsupportedOperationException();
+      }
+      public void getPrice() {
+        throw new UnsupportedOperationException();
+      }
+      public void isVegetarian() {
+        throw new UnsupportedOperationException();
+      }
+
+      public void print() {
+        throw new UnsupportedOperationException();
+      }
+    }
+    ```
+
+    Implementation of <b>MenuItem</b>:
+
+    ```java
+    public class MenuItem extends MenuComponent {
+      String name;
+      String description;
+      boolean vegetarian;
+      double price;
+
+      public MenuItem(String name, String description,
+                      boolean vegetarian, double price)
+      {
+        this.name = name;
+        this.description = description;
+        this.vegetarian = vegetarian;
+        this.price = price;
+      }
+
+      public String getName() {
+        return name;
+      }
+      public String getDescription() {
+        return description;
+      }
+      public String getPrice() {
+        return price;
+      }
+      public String isVegetarian() {
+        return vegetarian;
+      }
+
+      public void print() {
+        System.out.print(" " + getName());
+        if (isVegetarian()) {
+          System.our.print("(v)");
+        }
+        System.out.println(", " + getPrice());
+        System.out.println("   -- " + getDescription());
+      }
+    }
+    ```
+
+    Implementation of <b>Composite Menu</b>:
+
+    ```java
+    public class Menu extends MenuComponent {
+      ArrayList menuComponents = new ArrayList();
+      String name;
+      String description;
+
+      public Menu(String name, String description) {
+        this.name = name;
+        this.description = description;
+      }
+
+      public void add(MenuComponent menuComponent) {
+        menuComponents.add(menuComponent);
+      }
+      public void remove(MenuComponent menuComponent) {
+        menuComponents.remove(menuComponent);
+      }
+      public MenuComponent getChild(int i) {
+        return (MenuComponent) menuComponents.get(i);
+      }
+      public String getName() {
+        return name;
+      }
+      public String getDescription() {
+        return description;
+      }
+      public void print() {
+        System.out.print("\n" + getName());
+        System.out.println(", " + getDescription());
+        System.out.println("---------------");
+
+        Iterator iterator = menuComponents.iterator();
+        // We use iterator to iterate through all of the Menu's components... those could be other Menus or MenuItems.
+        while (iterator.hasNext()) {
+          MenuComponent menuComponent = (MenuComponent) iterator.next();
+          menuComponent.print();
+        }
+      }
+    }
+    ```
+
+    Waitress Implementation:
+
+    ```java
+    public class Waitress {
+      MenuComponent allMenus;
+
+      public Waitress(MenuComponent allMenus) {
+        this.allMenus = allMenus;
+      }
+
+      public void printMenu() {
+        allMenus.print();
+      }
+    }
+    ```
+
+    Main File:
+
+    ```java
+    public class MainTestDrive {
+      public static void main(String[] args) {
+        MenuComponent pancakeHouseMenu = new Menu("PANCAKE HOUSE MENU", "Breakfast");
+        MenuComponent dinnerMenu = new Menu("DINNER MENU", "Lunch");
+        MenuComponent pancakeHouseMenu = new Menu("CAFE MENU", "Dinner");
+        MenuComponent dessertMenu = new Menu("DESSERT MENU", "Dessert of course!");
+
+        allMenus.add(pancakeHouseMenu);
+        allMenus.add(dinnerMenu);
+        allMenus.add(cafeMenu);
+
+        dinnerMenu.add(new MenuItem(
+          "Pasta",
+          "Spaghetti with Marinara Sauce, and a slice of sourdough bread",
+          true,
+          3.89,
+        ));
+        dinnerMenu.add(dessertMenu);
+
+        dessertMenu.add(new MenuItem(
+          "Apple Pie",
+          "Apple pie with a flakey crust, topped with vanilla icecream",
+          true,
+          1.59,
+        ));
+        // Add more menu items here
+
+        Waitress waitress = new Waitress(allMenus);
+        waitress.printMenu();
+      }
+    }
+    ```
+
+- Some changes that can be made:
+
+  - This violates the "One class, one responsibility" principle since composite pattern manages a hierarchy <b>AND</b> it performs operations related to Menus.
+  - To solve this, we can implement a Composite iterator <code>createIterator()</code> method in every component.
+  - <b>Menu</b> and <b>MenuItem</b> classes:
+
+    ```java
+    public class Menu extends MenuComponent {
+      // other code here doesn't change
+
+      public Iterator createIterator() {
+        return new CompositeIterator(menuComponents.iterator());
+      }
+    }
+
+    public class MenuItem extends MenuComponent {
+      // other code here doesn't change
+
+      public Iterator createIterator() {
+        return new NullIterator();
+      }
+    }
+    ```
+
+    Iterators implementation:
+
+    - Composite Iterator
+
+      ```java
+      import java.util.*;
+
+      public class CompositeIterator implements Iterator {
+        Stack stack = new Stack();
+
+        public CompositeIterator(Iterator iterator) {
+          stack.push(iterator);
+        }
+
+        public Object next() {
+          if (hasNext()) {
+            Iterator iterator = (Iterator) stack.peek();
+            MenuComponent component = (MenuComponent) iterator.next();
+            if (component instanceof Menu) {
+              stack.push(component.createIterator());
+            }
+            return component;
+          }
+          return null;
+        }
+
+        public boolean hasNext() {
+          if (stack.empty()) {
+            return false;
+          }
+
+          Iterator iterator = (Iterator) stack.peek();
+          if (!iterator.hasNext()) {
+            stack.pop();
+            return hasNext();
+          }
+          return true;
+        }
+
+        // Not supporting remove, only traversal.
+        public void remove() {
+          throw new UnsupportedOperationException();
+        }
+      }
+      ```
+
+    - Null Iterator
+
+      ```java
+      import java.util.Iterator;
+
+      public class NullIterator implements Iterator {
+        public Object next() {
+          return null;
+        }
+
+        public boolean hasNext() {
+          return false;
+        }
+
+        public void remove() {
+          throw new UnsupportedOperationException();
+        }
+      }
+      ```
+
+  - Waitress class revisited
+
+    ```java
+    public class Waitress {
+      MenuCompoent allMenus;
+
+      public Waitress(MenuComponent allMenus) {
+        this.allMenus = allMenus;
+      }
+
+      public void printMenu() {
+        allMenus.print();
+      }
+
+      public void printVegetarianMenu() {
+        Iterator iterator = allMenus.createIterator();
+        System.out.println("\nVEGETARIAN MENU\n----");
+
+        // Iterate through every element of the composite
+        while (iterator.hasNext()) {
+          MenuComponent menuComponent = (MenuComponent) iterator.next();
+
+          try {
+            if (menuComponent.isVegetarian()) {
+              menuComponent.print();
+            }
+          } catch(UnsupportedOperationException e) {}
+        }
+      }
+    }
+    ```
+
+### State Pattern
+
+- State Pattern allows an oject to alter its behaviour when its internal state changes. The object will appear to change its class.
+- Preparations (Taken from Head-First Design Pattern pg. 395):
+
+  - List of states:
+    <ol>
+      <li>Sold Out</li>
+      <li>No Quarter</li>
+      <li>Has Quarter</li>
+      <li>Sold</li>
+    </ol>
+  - Create an instance variable to holdthe curent state and the values:
+
+    ```java
+    final static int SOLD_OUT = 0;
+    final static int NO_QUARTER = 1;
+    final static int HAS_QUARTER = 2;
+    final static int SOLD = 3;
+
+    int state = SOLD_OUT;
+    ```
+
+  - List of actions:
+    <ol>
+      <li>Inserts Quarter</li>
+      <li>Ejects Quarter</li>
+      <li>Turns Crank</li>
+      <li>Dispense</li>
+    </ol>
+
+  - Writing the code:
+
+    ```java
+    public class GumballMachine {
+      final static int SOLD_OUT = 0;
+      final static int NO_QUARTER = 1;
+      final static int HAS_QUARTER = 2;
+      final static int SOLD = 3;
+
+      int state = SOLD_OUT;
+      int count = 0;
+
+      public GumballMachine(int count) {
+        this.count = count;
+        if (count > 0) {
+          state = NO_QUARTER;
+        }
+      }
+
+      public void insertQuarter() {
+        if (state == HAS_QUARTER) {
+          System.out..println("You can't insert another quarter");
+        } else if (state == NO_QUARTER) {
+          System.out.println("You inserted a quarter");
+        } else if (state == SOLD_OUT) {
+          System.our.println("You can't insert a quarter, the machine is sold out");
+        } else if (state == SOLD) {
+          System.out.println("Please wait, we're already giving you a gumball");
+        }
+      }
+
+      public void ejectQuarter() {
+        if (state == HAS_QUARTER) {
+          System.out..println("Quarter returned");
+          state = NO_QUARTER;
+        } else if (state == NO_QUARTER) {
+          System.out.println("You haven't inserted a quarter");
+        } else if (state == SOLD) {
+          System.our.println("Sorry, you already turned the crank");
+        } else if (state == SOLD_OUT) {
+          System.out.println("You can't eject, you haven't inserted a quarter yet");
+        }
+      }
+
+      public void turnCrank() {
+        if (state == SOLD) {
+          System.out..println("Turning twice doesn't get you another gumball");
+        } else if (state == NO_QUARTER) {
+          System.out.println("You turned but there's no quarter");
+        } else if (state == SOLD_OUT) {
+          System.out.println("You turned, but there are no gumballs");
+        } else if (state == HAS_QUARTER) {
+          System.our.println("You turned...");
+          state = SOLD;
+          dispense();
+        }
+      }
+
+      public void dispense() {
+        if (state == SOLD) {
+          System.out.println("A gumball comes rolling out the slot");
+          count --;
+          if (count == 0) {
+            System.out.println("Oops, outs of gumballs!");
+            state = SOLD_OUT;
+          } else {
+            state = NO_QUARTER;
+          }
+        } else if (state == NO_QUARTER) {
+          System.out..println("You need to pay first");
+        } else if (state == SOLD_OUT) {
+          System.out.println("No gumball dispensed");
+        } else if (state == HAS_QUARTER) {
+          System.out.println("No gumball dispensed");
+        }
+      }
+    }
+    ```
+
+    Main File:
+
+    ```java
+    public class GumballMachineTestDrive {
+      public static void main(String[] args) {
+        // Load it up with 5 gumball total
+        GumballMachine ghmballMachine = new GumballMachine(5);
+
+        System.out.println(gumballMachine);
+
+        gumballMachine.insertQuarter();
+        gumballMachine.turnCrank();
+
+        System.out.println(gumbalMachine);
+
+        gumballMachine.insertQuarter();
+        gumballMachine.ejectQuarter();
+        gumballMachine.turnCrank();
+
+        System.out.println(gumballMachine);
+
+        gumballMachine.insertQuarter();
+        gumballMachine.turnCrank();
+        gumballMachine.insertQuarter();
+        gumballMachine.turnCrank();
+        gumballMachine.ejectQuarter();
+
+        System.out.println(gumballMachine);
+
+        gumballMachine.insertQuarter();
+        gumballMachine.insertQuarter();
+        gumballMachine.turnCrank();
+        gumballMachine.insertQuarter();
+        gumballMachine.turnCrank();
+        gumballMachine.insertQuarter();
+        gumballMachine.turnCrank();
+
+        System.out.println(gumballMachine);
+      }
+    }
+    ```
+
+  - Messy STATE of things:
+
+    ```java
+    final static int SOLD_OUT = 0;
+    final static int NO_QUARTER = 1;
+    final static int HAS_QUARTER = 2;
+    final static int SOLD = 3;
+    /*
+      First, you'd have to add a new WINNER state here. That isn't too bad
+      But then, you'd have to add a new conditional in every single method to handle the WINNER state;
+      That's a lot of code to modify
+    */
+    public void insertQuarter() {
+      // insert quarter code here
+    }
+    public void ejectQuarter() {
+      // eject quarter code here
+    }
+    public void turnCrank() {
+      // turn crank code here
+    }
+
+    public void dispense() {
+      // dispense code here
+    }
+    ```
+
+- The new design
+
+  - Here is the design:
+    <ol>
+    <li>First, we're going to define a State interface that contains a method for every action in the Gumball Machine</li>
+    <li>Then, we're going to implement a State class for every state of the machine. These classes will be responsible for the behaviour of the machine when it is in the corresponding state.</li>
+    <li>Finally, we're going to get rid of all our conditional code and instead delegate to the state class to do the work for us.</li>
+    </ol>
+  - Implementing states:
+    List of states:
+    <ul>
+    <li>NoQuarterState</li>
+    <li>SoldOutState</li>
+    <li>SoldState</li>
+    <li>HasQuarterState</li>
+    </ul>
+    <br/>
+    <b>NoQuarterState</b>
+
+    ```java
+    public class NoQuarterState implements State {
+      GumballMachine gumballMachine;
+
+      public NoQuarterState(GumballMachine gumballMachine) {
+        this.gumballMachine = gumballMachine;
+      }
+
+      public void insertQuarter() {
+        System.out.println("You inserted a quarter");
+        gumballMachine.setState(gumballMachine.getHasQuarterState());
+      }
+
+      public void ejectQuarter() {
+        System.out.println("You haven't inserted a quarter");
+      }
+
+      public void turnCrank() {
+        System.out.println("You turned, but there's no quarter");
+      }
+
+      public void dispense() {
+        System.out.println("You need to pay first");
+      }
+    }
+    ```
+
+    <b>HasQuarterState</b>
+
+    ```java
+    public class HasQuarterState implements State {
+      GumballMachine gumballMachine;
+
+      public HasQuarterState(GumballMachine gumballMachine) {
+        this.gumballMachine = gumballMachine;
+      }
+
+      public void insertQuarter() {
+        System.out.println("You can't insert another quarter");
+      }
+
+      public void ejectQuarter() {
+        System.out.println("Quarter returned");
+        gumballMachine.setState(gumballMachine.getNoQuarterState());
+      }
+
+      public void turnCrank() {
+        System.out.println("You turned...");
+        gumballMachine.setState(gumballMachine.getSoldState());
+      }
+
+      public void dispense() {
+        System.out.println("No gumball dispensed");
+      }
+    }
+    ```
+
+    <b>SoldState</b>
+
+    ```java
+    public class SoldState implements State {
+      GumballMachine gumballMachine;
+
+      public SoldState(GumballMachine gumballMachine) {
+        this.gumballMachine = gumballMachine;
+      }
+
+      public void insertQuarter() {
+        System.out.println("Please wait, we're already giving you a gumball");
+      }
+
+      public void ejectQuarter() {
+        System.out.println("Sorry, you already turned the crank");
+      }
+
+      public void turnCrank() {
+        System.out.println("Turning twice doesn't get you another gumball!");
+      }
+
+      public void dispense() {
+        gumballMachine.releaseBall();
+        if (gumballMachine.getCount() > 0) {
+          gumballMachine.setState(gumballMachine.getNoQuarterState());
+        } else {
+          System.out.println("Oops, out of gumballs!");
+          gumballMachine.setState(gumballMachine.getSoldOutState());
+        }
+      }
+    }
+    ```
+
+    <b>SoldOutState</b>
+
+    ```java
+    public class SoldOutState implements State {
+      GumballMachine gumballMachine;
+
+      public SoldOutState(GumballMachine gumballMachine) {
+          this.gumballMachine = gumballMachine;
+      }
+
+      public void insertQuarter() {
+        System.out.println("You can't insert a quarter, the machine is sold out");
+      }
+
+      public void ejectQuarter() {
+        System.out.println("You can't eject, you haven't inserted a quarter yet");
+      }
+
+      public void turnCrank() {
+        System.out.println("You turned, but there are no gumballs");
+      }
+
+      public void dispense() {
+        System.out.println("No gumball dispensed");
+      }
+
+      public void refill() {
+        gumballMachine.setState(gumballMachine.getNoQuarterState());
+      }
+    }
+    ```
+
+    <b>Gumball Machine</b>
+
+    ```java
+    public class GumballMachine {
+
+      State soldOutState;
+      State noQuarterState;
+      State hasQuarterState;
+      State soldState;
+
+      State state;
+      int count = 0;
+
+      public GumballMachine(int numberGumballs) {
+        soldOutState = new SoldOutState(this);
+        noQuarterState = new NoQuarterState(this);
+        hasQuarterState = new HasQuarterState(this);
+        soldState = new SoldState(this);
+
+        this.count = numberGumballs;
+        if (numberGumballs > 0) {
+          state = noQuarterState;
+        } else {
+          state = soldOutState;
+        }
+      }
+
+      public void insertQuarter() {
+        state.insertQuarter();
+      }
+
+      public void ejectQuarter() {
+        state.ejectQuarter();
+      }
+
+      public void turnCrank() {
+        state.turnCrank();
+        state.dispense();
+      }
+
+      void releaseBall() {
+        System.out.println("A gumball comes rolling out the slot...");
+        if (count != 0) {
+          count = count - 1;
+        }
+      }
+
+    ```
+
+    Main File:
+
+    ```java
+    public class GumballMachineTestDrive {
+      public static void main(String[] args) {
+        GumballMachine gumballMachine = new GumballMachine(2);
+
+        System.out.println(gumballMachine);
+
+        gumballMachine.insertQuarter();
+        gumballMachine.turnCrank();
+
+        System.out.println(gumballMachine);
+
+        gumballMachine.insertQuarter();
+        gumballMachine.turnCrank();
+        gumballMachine.insertQuarter();
+        gumballMachine.turnCrank();
+
+        gumballMachine.refill(5);
+        gumballMachine.insertQuarter();
+        gumballMachine.turnCrank();
+
+        System.out.println(gumballMachine);
+      }
+    }
+    ```
+
+- Suppose there is a new state added:
+  <b>Winner State</b>
+
+  ```java
+  public class WinnerState implements State {
+    GumballMachine gumballMachine;
+
+    // instance variables and constructor
+
+    // insertQuarter error message
+
+    // ejectQuarter error message
+
+    // turnCrank error message
+
+    public void dispense() {
+      System.out.println("YOU'RE A WINNER! You got two gumballs for your quarter");
+      gumballMachine.releaseBall();
+      if (gumballMachine.getCount() == 0) {
+        gumballMachine.setState(gumballMachine.getSoldOutState());
+        return;
+      }
+
+      gumballMachine.releaseBall();
+      if (gumballMachine.getCount() > 0) {
+        gumballMachine.setState(gumballMachine.getNoQuarterState());
+      } else {
+        System.out.println("Oops, out of gumballs!");
+        gumballMachine.setState(gumballMachine.getSoldOutState());
+      }
+    }
+  }
+  ```
+
+  <b>GumballMachine</b>
+
+  ```java
+  public class GumballMachine {
+    State soldOutState;
+    State noQuarterState;
+    State hasQuarterState;
+    State soldState;
+    State winnerState;    // Add new state here
+
+    State state = soldOutState;
+    int count = 0;
+
+    // methods here
+  }
+  ```
+
+  <br/>
+
+  From here, we've just got one more change to make: we need to implement the random chance game and add a transition to the <b>WinnerState</b>. We're going to add both to the <b>HasQuarterState</b> since that is where the customer turns the crank:
+  <br/>
+  <b>HasQuarterState</b>
+
+  ```java
+  public class HasQuarterState implements State {
+    // We add a random number generator
+    Random randomWinner = new Random(System.currentTimeMillis());
+    GumballMachine gumballMachine;
+
+    public HasQuarterState(GumballMachine gumballMachine) {
+      this.gumballMachine = gumballMachine;
+    }
+
+    public void insertQuarter() {
+      System.out.println("You can't insert another quarter");
+    }
+
+    public void ejectQuarter() {
+      System.out.println("Quarter returned");
+      gumballMachine.setState(gumballMachine.getNoQuarterState());
+    }
+
+    public void turnCrank() {
+      System.out.println("You turned...");
+
+      // Here, we determine if this customer won or not
+      int winner = randomWinner.nextInt(10);
+      if ((winner == 0) && (gumballMachine.getCount() > 1)) {
+        gumballMachine.setState(gumballMachine.getWinnerState());
+      } else {
+        gumballMachine.setState(gumballMachine.getSoldState());
+      }
+    }
+
+    public void dispense() {
+      System.out.println("No gumball dispensed");
+    }
+  }
+  ```
+
+  Here, we can see that it is pretty simple to implement. We just added a new state to the GumballMachine and then implemented it.
+
+### Proxy Pattern
